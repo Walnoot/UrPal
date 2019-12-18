@@ -134,7 +134,12 @@ class InvariantViolationProperty : AbstractProperty() {
         try {
             val proto = PrototypeDocument()
             proto.setProperty("synchronization", "")
-            val tDoc = XMLReader(CharSequenceInputStream(Serialization().main(nstaTrans), "UTF-8"))
+
+            var xml = Serialization().main(nstaTrans).toString().replace(
+                    "http://www.it.uu.se/research/group/darts/uppaal/flat-1_1.dtd",
+                    "http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd")
+
+            val tDoc = XMLReader(CharSequenceInputStream(xml, "UTF-8"))
                     .parse(proto)
             val tSys = UppaalUtil.compile(tDoc)
             engineQuery(tSys, "A[] (not __isViolated__)", OPTIONS) { qr, ts ->

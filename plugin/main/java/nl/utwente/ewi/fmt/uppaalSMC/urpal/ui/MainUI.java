@@ -12,20 +12,10 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Stream;
 
+import javax.swing.*;
 
-import com.uppaal.engine.Problem;
-import com.uppaal.model.system.symbolic.SymbolicTrace;
-import com.uppaal.plugin.Plugin;
-import com.uppaal.plugin.PluginWorkspace;
-import com.uppaal.plugin.Registry;
-import com.uppaal.plugin.Repository;
-import kotlin.Unit;
-import nl.utwente.ewi.fmt.uppaalSMC.urpal.properties.SanityCheckResult;
-import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.ProblemWrapper;
-import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.SanityLogRepository;
-import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.UppaalUtil;
+import com.uppaal.model.system.concrete.ConcreteTrace;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -34,17 +24,26 @@ import org.eclipse.xtext.resource.XtextResourceSet;
 
 import com.google.inject.Injector;
 import com.uppaal.engine.EngineException;
+import com.uppaal.engine.Problem;
 import com.uppaal.model.core2.Document;
 import com.uppaal.model.io2.XMLWriter;
 import com.uppaal.model.system.UppaalSystem;
+import com.uppaal.model.system.symbolic.SymbolicTrace;
+import com.uppaal.plugin.Plugin;
+import com.uppaal.plugin.PluginWorkspace;
+import com.uppaal.plugin.Registry;
+import com.uppaal.plugin.Repository;
 import com.uppaal.plugin.Repository.ChangeType;
 
-import nl.utwente.ewi.fmt.uppaalSMC.parser.UppaalSMCStandaloneSetup;
+import kotlin.Unit;
 import nl.utwente.ewi.fmt.uppaalSMC.NSTA;
+import nl.utwente.ewi.fmt.uppaalSMC.parser.UppaalSMCStandaloneSetup;
 import nl.utwente.ewi.fmt.uppaalSMC.urpal.properties.AbstractProperty;
 import nl.utwente.ewi.fmt.uppaalSMC.urpal.properties.SanityCheck;
-
-import javax.swing.*;
+import nl.utwente.ewi.fmt.uppaalSMC.urpal.properties.SanityCheckResult;
+import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.ProblemWrapper;
+import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.SanityLogRepository;
+import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.UppaalUtil;
 
 @SuppressWarnings("serial")
 public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyChangeListener {
@@ -76,13 +75,22 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
 
     private final List<PropertyPanel> panels = new ArrayList<>();
     private static ResourceSet rs;
-    private Repository<Document> docr;
+
+    public static Repository<Document> getDocument() {return docr; }
+
+    private static Repository<Document> docr;
 
     public static Repository<SymbolicTrace> getTracer() {
         return tracer;
     }
 
     private static Repository<SymbolicTrace> tracer;
+
+    public static Repository<ConcreteTrace> getConcreteTracer() {
+        return concreteTracer;
+    }
+
+    private static Repository<ConcreteTrace> concreteTracer;
 
     public static Repository<ArrayList<Problem>> getProblemr() {
         return problemr;
@@ -113,7 +121,10 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
 
         try {
             new XMLWriter(out).visitDocument(d);
-            InputStream in = new ByteArrayInputStream(out.toByteArray());
+            byte[] ba = out.toByteArray();
+//            System.out.println("input: ");
+//            System.out.println(new String(ba));
+            InputStream in = new ByteArrayInputStream(ba);
             Resource resource = rs.createResource(URI.createURI("dummy:/" + System.currentTimeMillis() + ".xml"), null);
             resource.load(in, rs.getLoadOptions());
 
@@ -165,8 +176,19 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
             panel.add(iconLabel = new JLabel(icon));
             panel.add(checkBox);
 //            panel.add(new JLabel(name););
-            panel.add(Box.createHorizontalGlue());
+
+//            panel.add(Box.createHorizontalGlue());
+
             add(panel, BorderLayout.NORTH);
+
+            JPanel customPanel = new JPanel();
+            customPanel.setLayout(new BoxLayout(customPanel, BoxLayout.PAGE_AXIS));
+//            customPanel.setLayout(new GridLayout(0, 1));
+            property.addToPanel(customPanel);
+
+            JPanel customPanelContainer = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            customPanelContainer.add(customPanel);
+            add(customPanelContainer, BorderLayout.CENTER);
         }
 
         void check(NSTA nsta, Document doc, UppaalSystem sys) {
@@ -191,7 +213,7 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
                 if (component != null)
                     remove(component);
                 component = pr.toPanel();
-                add(component, BorderLayout.CENTER);
+                add(component, BorderLayout.SOUTH);
 
                 redoStuff();
                 return Unit.INSTANCE;
@@ -213,6 +235,7 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
         super();
         docr = r.getRepository("EditorDocument");
         tracer = r.getRepository("SymbolicTrace");
+        concreteTracer = r.getRepository("ConcreteTrace");
         problemr = r.getRepository("EditorProblems");
         systemr = r.getRepository("SystemModel");
         r.publishRepository(slr = new SanityLogRepository());
@@ -242,6 +265,18 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
         });
         jp.add(timeOut);
         add(jp);
+
+        jp = new JPanel();
+        jp.add(new JLabel("Simulation time: "));
+        JTextField runTime = new JFormattedTextField(NumberFormat.getIntegerInstance());
+        runTime.setText("" + AbstractProperty.Companion.getSimTime());
+        runTime.setPreferredSize(new Dimension(128, runTime.getPreferredSize().height));
+        runTime.addPropertyChangeListener("value", evt -> {
+            AbstractProperty.Companion.setSimTime(Integer.parseInt(evt.getNewValue().toString()));
+        });
+        jp.add(runTime);
+        add(jp);
+
         runButton = new JButton("Run selected checks");
         runButton.addActionListener(e -> doCheck(true));
         add(runButton);
@@ -389,7 +424,7 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
 
     @Override
     public String getTitle() {
-        return "Sanity Checker";
+        return "SMC Checker";
     }
 
     @Override
