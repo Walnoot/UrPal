@@ -37,35 +37,7 @@ import java.util.List;
 
 @SuppressWarnings("serial")
 public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyChangeListener {
-//    protected static final String SELECT = "com/uppaal/resource/images/selectedQuery.gif";
-//    protected static final String OKAY = "com/uppaal/resource/images/queryOkay.gif";
-//    protected static final String NOT_OKAY = "com/uppaal/resource/images/queryNotOkay.gif";
-//    protected static final String UNKNOWN = "com/uppaal/resource/images/queryUnknown.gif";
-//    protected static final String MAYBE_OKAY = "com/uppaal/resource/images/queryMaybeOkay.gif";
-//    protected static final String MAYBE_NOT_OKAY = "com/uppaal/resource/images/queryMaybeNotOkay.gif";
-
     private JTextArea specArea;
-
-//    private String getIconByOutcome(SanityCheckResult.Outcome outcome) {
-//        switch (outcome) {
-//            case TIMEOUT:
-//            case CANCELED:
-//            case EXCEPTION:
-//                return MAYBE_NOT_OKAY;
-//            case VIOLATED:
-//                return NOT_OKAY;
-//            case SATISFIED:
-//                return OKAY;
-//            default:
-//                return UNKNOWN;
-//        }
-//    }
-
-//    private ImageIcon getIcon(String resource) {
-//        return new ImageIcon(getClass().getClassLoader().getResource(resource));
-//    }
-
-//    private final List<PropertyPanel> panels = new ArrayList<>();
     private static XtextResourceSet rs;
 
     public static Repository<Document> getDocument() {return docr; }
@@ -135,106 +107,6 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
         return null;
     }
 
-//    private class PropertyPanel extends JPanel {
-//        private final AbstractProperty property;
-//        private boolean enabled;
-//        private JPanel component;
-//        private ImageIcon icon;
-//        private JLabel iconLabel;
-//        private SanityCheckResult lastResult;
-//        private String name;
-//
-//        private void redoStuff() {
-//            Component c = this;
-////            if (c == null)
-////                c = this;
-////            while (c.getParent() != null) {
-////                c = c.getParent();
-////            }
-//            c.revalidate();
-//            c.repaint();
-//        }
-//
-//        PropertyPanel(AbstractProperty p) {
-//            super();
-//            property = p;
-//            name = property.getClass().getAnnotation(SanityCheck.class).name();
-//            icon = getIcon(UNKNOWN);
-//            setLayout(new BorderLayout());
-//            setBorder(BorderFactory.createTitledBorder(name));
-//            JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-//            JCheckBox checkBox = new JCheckBox(name);
-//            checkBox.setSelected(enabled = true);
-//            checkBox.addItemListener(a -> {
-//                enabled = a.getStateChange() == ItemEvent.SELECTED;
-//                if (component != null) {
-//                    remove(component);
-//                    iconLabel.setIcon(getIcon(UNKNOWN));
-//                }
-//                redoStuff();
-//            });
-//            panel.add(iconLabel = new JLabel(icon));
-//            panel.add(checkBox);
-////            panel.add(new JLabel(name););
-//
-////            panel.add(Box.createHorizontalGlue());
-//
-//            add(panel, BorderLayout.NORTH);
-//
-//            JPanel customPanel = new JPanel();
-//            customPanel.setLayout(new BoxLayout(customPanel, BoxLayout.PAGE_AXIS));
-////            customPanel.setLayout(new GridLayout(0, 1));
-//            property.addToPanel(customPanel);
-//
-//            JPanel customPanelContainer = new JPanel(new FlowLayout(FlowLayout.LEFT));
-//            customPanelContainer.add(customPanel);
-//            add(customPanelContainer, BorderLayout.CENTER);
-//        }
-//
-//        void check(NSTA nsta, Document doc, UppaalSystem sys) {
-//            iconLabel.setIcon(getIcon(MAYBE_OKAY));
-//            if (nsta == null) {
-//                nsta = load(doc = docr.get());
-//                try {
-//                    sys = UppaalUtil.INSTANCE.compile(doc);
-//                } catch (EngineException | IOException e) {
-//                    e.printStackTrace();
-//                    return;
-//                }
-//            }
-//
-//            SanityCheckResult pr = property.check(nsta, doc, sys, null);
-//
-//            lastResult = pr;
-//            iconLabel.setIcon(getIcon(pr.getSatisfied() ? OKAY : NOT_OKAY));
-////            iconLabel.setIcon(getIcon(getIconByOutcome(pr.getOutcome())));
-//            slr.addToLog(pr);
-//            if (component != null)
-//                remove(component);
-//            component = pr.toPanel();
-//            add(component, BorderLayout.SOUTH);
-//
-//            redoStuff();
-//
-////            property.check(nsta, doc, sys, pr -> {
-////                if (pr == null) {
-////                    docr.fire(ChangeType.valueOf("UPDATED"));
-////                    return Unit.INSTANCE;
-////                }
-////                lastResult = pr;
-////                iconLabel.setIcon(getIcon(getIconByOutcome(pr.getOutcome())));
-////                slr.addToLog(pr);
-////                if (component != null)
-////                    remove(component);
-////                component = pr.toPanel();
-////                add(component, BorderLayout.SOUTH);
-////
-////                redoStuff();
-////                return Unit.INSTANCE;
-////            });
-//        }
-//    }
-
     static {
         Injector injector = UppaalSMCStandaloneSetup.doSetup();
         rs = injector.getInstance(XtextResourceSet.class);
@@ -259,40 +131,6 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
-//        JPanel jp = new JPanel();
-//        jp.add(new JLabel("States to explore per check (<=0 for unlimited): "));
-//        JTextField nStates = new JFormattedTextField(NumberFormat.getIntegerInstance());
-//        nStates.setText("" + AbstractProperty.Companion.getStateSpaceSize());
-//        nStates.setPreferredSize(new Dimension(128, nStates.getPreferredSize().height));
-//        nStates.addPropertyChangeListener("value", evt -> {
-//            AbstractProperty.Companion.setStateSpaceSize(Integer.parseInt(evt.getNewValue().toString()));
-//        });
-//        jp.add(nStates);
-//        add(jp);
-//
-//        jp = new JPanel();
-//        jp.add(new JLabel("Timeout (in seconds): "));
-//        JTextField timeOut = new JFormattedTextField(NumberFormat.getIntegerInstance());
-//        timeOut.setText("" + AbstractProperty.Companion.getTimeout());
-//        timeOut.setPreferredSize(new Dimension(128, timeOut.getPreferredSize().height));
-//        timeOut.addPropertyChangeListener("value", evt -> {
-//            AbstractProperty.Companion.setTimeout(Integer.parseInt(evt.getNewValue().toString()));
-//        });
-//        jp.add(timeOut);
-//        add(jp);
-//
-//        jp = new JPanel();
-//        jp.add(new JLabel("Simulation time: "));
-//        JTextField runTime = new JFormattedTextField(NumberFormat.getIntegerInstance());
-//        runTime.setText("" + AbstractProperty.Companion.getSimTime());
-//        runTime.setPreferredSize(new Dimension(128, runTime.getPreferredSize().height));
-//        runTime.addPropertyChangeListener("value", evt -> {
-//            AbstractProperty.Companion.setSimTime(Integer.parseInt(evt.getNewValue().toString()));
-//        });
-//        jp.add(runTime);
-//        add(jp);
-
-//        String spec = EditorUtil.INSTANCE.getSpecification(docr.get());
         String spec = "{}";
 
         JPanel specPanel = new JPanel();
@@ -325,11 +163,6 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
         runButton = new JButton("Run selected checks");
         runButton.addActionListener(e -> doCheck(specArea.getText(), true));
         add(runButton);
-//        for (AbstractProperty p : AbstractProperty.Companion.getProperties()) {
-//            PropertyPanel pp = new PropertyPanel(p);
-//            add(pp);
-//            panels.add(pp);
-//        }
 
         resultPane = new JEditorPane();
         resultPane.setEditable(false);
@@ -359,63 +192,6 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
     }
 
     private boolean doNotShow = false;
-
-    @Override
-    public Icon getIcon() {
-        return null;
-    }
-
-    @Override
-    public String getTitleToolTip() {
-        return "Detect commonly made errors";
-    }
-
-    @Override
-    public Component getComponent() {
-        return new JScrollPane(this);
-    }
-
-    @Override
-    public int getDevelopmentIndex() {
-        return 350;
-    }
-
-    @Override
-    public boolean getCanZoom() {
-        return false;
-    }
-
-    @Override
-    public boolean getCanZoomToFit() {
-        return false;
-    }
-
-    @Override
-    public double getZoom() {
-        return zoom;
-    }
-
-    @Override
-    public void setZoom(double value) {
-        zoom = value;
-    }
-
-    @Override
-    public void zoomToFit() {
-    }
-
-    @Override
-    public void zoomIn() {
-    }
-
-    @Override
-    public void zoomOut() {
-    }
-
-    @Override
-    public void setActive(boolean selected) {
-        this.selected = selected;
-    }
 
     private void doCheck(String spec, boolean fromButton) {
         resultPane.setText("");
@@ -481,6 +257,63 @@ public class MainUI extends JPanel implements Plugin, PluginWorkspace, PropertyC
 
     private Thread checkThread;
     private Thread dialogThread;
+
+    @Override
+    public Icon getIcon() {
+        return null;
+    }
+
+    @Override
+    public String getTitleToolTip() {
+        return "Detect commonly made errors";
+    }
+
+    @Override
+    public Component getComponent() {
+        return new JScrollPane(this);
+    }
+
+    @Override
+    public int getDevelopmentIndex() {
+        return 350;
+    }
+
+    @Override
+    public boolean getCanZoom() {
+        return false;
+    }
+
+    @Override
+    public boolean getCanZoomToFit() {
+        return false;
+    }
+
+    @Override
+    public double getZoom() {
+        return zoom;
+    }
+
+    @Override
+    public void setZoom(double value) {
+        zoom = value;
+    }
+
+    @Override
+    public void zoomToFit() {
+    }
+
+    @Override
+    public void zoomIn() {
+    }
+
+    @Override
+    public void zoomOut() {
+    }
+
+    @Override
+    public void setActive(boolean selected) {
+        this.selected = selected;
+    }
 
     @Override
     public PluginWorkspace[] getWorkspaces() {
