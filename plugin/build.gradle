@@ -5,13 +5,14 @@ plugins {
 }
 
 dependencies {
-	
+	compile 'com.googlecode.json-simple:json-simple:1.1'
+
 	compile group: 'commons-io', name: 'commons-io', version: '2.6'
 	compile project(':parser')
 	implementation name: 'lib/model'
 	implementation name: 'uppaal'
 
-    testImplementation 'junit:junit:4.12'
+	testImplementation 'junit:junit:4.12'
 	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 	implementation 'com.github.ajalt:clikt:2.0.0'
 }

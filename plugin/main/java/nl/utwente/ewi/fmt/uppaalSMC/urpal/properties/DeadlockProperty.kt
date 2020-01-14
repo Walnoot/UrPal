@@ -1,27 +1,42 @@
 package nl.utwente.ewi.fmt.uppaalSMC.urpal.properties
 
-import java.awt.Color
-import java.io.PrintStream
-import java.util.HashSet
+import com.uppaal.model.core2.Document
+import com.uppaal.model.core2.PrototypeDocument
+import com.uppaal.model.system.UppaalSystem
+import nl.utwente.ewi.fmt.uppaalSMC.NSTA
+import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.UppaalUtil
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 
-import javax.swing.BoxLayout
-import javax.swing.JButton
-import javax.swing.JLabel
-import javax.swing.JPanel
-
-import com.uppaal.engine.QueryResult
-import com.uppaal.model.core2.Document
-import com.uppaal.model.system.UppaalSystem
-
-import nl.utwente.ewi.fmt.uppaalSMC.NSTA
-import nl.utwente.ewi.fmt.uppaalSMC.urpal.ui.MainUI
-import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.UppaalUtil
-
 @SanityCheck(name = "Deadlocks", shortName = "deadlock")
-class DeadlockProperty : AbstractProperty() {
+class DeadlockProperty : SafetyProperty() {
+    override fun translateNSTA(nsta: NSTA, properties: Map<String, Any>): String {
+        // compile UppaalSystem so we can iterate over every instantiated process
+        val sys = UppaalUtil.compile(UppaalUtil.toDocument(nsta, Document(PrototypeDocument())))
 
-    override fun doCheck(nsta: NSTA, doc: Document, sys: UppaalSystem, cb: (SanityCheckResult) -> Unit) {
+        val locs = mutableListOf<String>()
+
+        for (process in sys.processes) {
+            // find corresponding NSTA template
+            val template = nsta.template.find { it.name == process.template.getPropertyValue("name") }!!
+
+            for (loc in template.location) {
+                if (nsta.template.flatMap { it.edge }.none { e -> e.source == loc }) {
+                    locs.add("${process.name}.${loc.name}")
+                }
+            }
+        }
+
+        val query = if (locs.isEmpty()) {
+            "deadlock"
+        } else {
+            "deadlock and not (${locs.joinToString(" or ")})"
+        }
+
+        return query
+    }
+
+    fun doCheck(nsta: NSTA, doc: Document, sys: UppaalSystem, cb: (SanityCheckResult) -> Unit) {
         val cbs = HashSet<() -> Unit>()
         val i = AtomicInteger()
         val locs = sys.processes.flatMap { p ->
@@ -40,43 +55,43 @@ class DeadlockProperty : AbstractProperty() {
             "A[] (deadlock imply ${locs.joinToString(" or ")})"
         }
         UppaalUtil.reconnect()
-        engineQuery(sys, query, "trace 1") { qr, t ->
-            cbs.forEach { it() }
-            cb(object : SanityCheckResult() {
-                override fun quality() = (4.0 - qr.status) / 3.0
-                override fun getOutcome() = if (qr.status == QueryResult.OK) Outcome.SATISFIED else Outcome.VIOLATED
-
-                override fun write(out: PrintStream, err: PrintStream) {
-                    if (qr.status == QueryResult.OK) {
-                        out.println("No unwanted deadlocks found!")
-                    } else {
-                        err.println("Unwanted deadlocks found! See trace in the GUI:")
-
-                    }
-                }
-
-                override fun toPanel(): JPanel {
-                    val p = JPanel()
-                    p.layout = BoxLayout(p, BoxLayout.Y_AXIS)
-                    if (qr.status == QueryResult.OK) {
-                        val label = JLabel("No unwanted deadlocks!")
-                        p.add(label)
-                    } else {
-
-                        val label = JLabel("Unwanted deadlocks found! Click button below to load trace:")
-                        label.foreground = Color.RED
-                        p.add(label)
-                        val button = JButton("Load trace")
-                        button.addActionListener {
-                            MainUI.getSystemr().set(sys)
-                            MainUI.getTracer().set(UppaalUtil.transformTrace(t, sys))
-                        }
-                        p.add(button)
-                    }
-                    return p
-                }
-            })
-        }
+//        engineQuery(sys, query, "trace 1") { qr, t ->
+//            cbs.forEach { it() }
+//            cb(object : SanityCheckResult() {
+//                override fun quality() = (4.0 - qr.status) / 3.0
+//                override fun getOutcome() = if (qr.status == QueryResult.OK) Outcome.SATISFIED else Outcome.VIOLATED
+//
+//                override fun write(out: PrintStream, err: PrintStream) {
+//                    if (qr.status == QueryResult.OK) {
+//                        out.println("No unwanted deadlocks found!")
+//                    } else {
+//                        err.println("Unwanted deadlocks found! See trace in the GUI:")
+//
+//                    }
+//                }
+//
+//                override fun toPanel(): JPanel {
+//                    val p = JPanel()
+//                    p.layout = BoxLayout(p, BoxLayout.Y_AXIS)
+//                    if (qr.status == QueryResult.OK) {
+//                        val label = JLabel("No unwanted deadlocks!")
+//                        p.add(label)
+//                    } else {
+//
+//                        val label = JLabel("Unwanted deadlocks found! Click button below to load trace:")
+//                        label.foreground = Color.RED
+//                        p.add(label)
+//                        val button = JButton("Load trace")
+//                        button.addActionListener {
+//                            MainUI.getSystemr().set(sys)
+//                            MainUI.getTracer().set(UppaalUtil.transformTrace(t, sys))
+//                        }
+//                        p.add(button)
+//                    }
+//                    return p
+//                }
+//            })
+//        }
 
     }
 

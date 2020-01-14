@@ -15,144 +15,64 @@ import com.uppaal.model.system.symbolic.SymbolicTrace
 import nl.utwente.ewi.fmt.uppaalSMC.NSTA
 import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.UppaalUtil
 import java.util.concurrent.Executors
-import java.util.concurrent.ExecutorService
-import org.eclipse.xtext.tasks.Task
-import java.awt.Color
-import java.io.PrintStream
-import java.lang.RuntimeException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import javax.swing.BoxLayout
-import javax.swing.JLabel
-import javax.swing.JPanel
 
 
 abstract class AbstractProperty {
 
-    protected abstract fun doCheck(nsta: NSTA, doc: Document, sys: UppaalSystem, cb: (SanityCheckResult) -> Unit)
+    protected abstract fun doCheck(nsta: NSTA, doc: Document, sys: UppaalSystem, properties: Map<String, Any>): SanityCheckResult
 
-    fun check(nsta: NSTA, doc: Document, sys: UppaalSystem, cb: (SanityCheckResult) -> Unit) {
+    fun check(nsta: NSTA, doc: Document, sys: UppaalSystem, properties: Map<String, Any>): SanityCheckResult {
+        var result: SanityCheckResult? = null
+
         val executor = Executors.newSingleThreadExecutor()
         val future = executor.submit {
-            doCheck(nsta, doc, sys) {
-                it.name = this.javaClass.simpleName
-                cb(it)
-            }
+            result = doCheck(nsta, doc, sys, properties)
         }
         try {
             future.get(timeout.toLong(), TimeUnit.SECONDS)
+            return result!!
         } catch (e: TimeoutException) {
             future.cancel(true)
             UppaalUtil.engine.cancel()
-            cb(timeoutResult())
+            return SanityCheckResult("Timeout", false, null)
         } catch (e: InterruptedException) {
             future.cancel(true)
             UppaalUtil.engine.cancel()
-            cb(cancelResult())
+            return SanityCheckResult("Cancelled", false, null)
         } catch (e: Exception) {
-            cb(exceptionResult())
+//            return SanityCheckResult("Exception", false)
             throw e
         }
     }
 
-    fun timeoutResult(): SanityCheckResult {
-        val result = object : SanityCheckResult() {
-            override fun quality() = -1.0
-
-            override fun write(out: PrintStream, err: PrintStream) {
-                err.println("Timeout for $name")
-            }
-
-            override fun toPanel(): JPanel {
-                val p = JPanel()
-                p.layout = BoxLayout(p, BoxLayout.Y_AXIS)
-                val label = JLabel("Timeout")
-                label.foreground = Color.RED
-                p.add(label)
-                return p
-            }
-
-            override fun getOutcome() = Outcome.TIMEOUT
-
-        }
-        result.name = this.javaClass.simpleName
-        return result
-    }
-    fun cancelResult(): SanityCheckResult {
-        val result = object : SanityCheckResult() {
-            override fun quality() = -1.0
-            override fun write(out: PrintStream, err: PrintStream) {
-                err.println("Cancelled $name")
-            }
-
-            override fun toPanel(): JPanel {
-                val p = JPanel()
-                p.layout = BoxLayout(p, BoxLayout.Y_AXIS)
-                val label = JLabel("Cancelled")
-                label.foreground = Color.RED
-                p.add(label)
-                return p
-            }
-
-            override fun getOutcome() = Outcome.TIMEOUT
-
-        }
-        result.name = this.javaClass.simpleName
-        return result
-    }
-    fun exceptionResult(): SanityCheckResult {
-        val result = object : SanityCheckResult() {
-            override fun quality() = -1.0
-
-            override fun write(out: PrintStream, err: PrintStream) {
-                err.println("Exception for $name")
-            }
-
-            override fun toPanel(): JPanel {
-                val p = JPanel()
-                p.layout = BoxLayout(p, BoxLayout.Y_AXIS)
-                val label = JLabel("Exception")
-                label.foreground = Color.RED
-                p.add(label)
-                return p
-            }
-
-            override fun getOutcome() = Outcome.EXCEPTION
-
-        }
-        result.name = this.javaClass.simpleName
-        return result
-    }
-
     fun shortName() = javaClass.getAnnotation(SanityCheck::class.java).shortName
 
-    open fun addToPanel(panel: JPanel) {}
+//    open fun addToPanel(panel: JPanel) {}
 
     companion object {
-
-
         val properties = arrayOf(
-//			DeadlockProperty(),
-//			ReceiveSyncProperty(),
-            SymbolicProperty()
+            SymbolicProperty(),
+            ReceiveSyncProperty(),
+			DeadlockProperty()
 //			SystemLocationReachabilityMeta(),
 //			TemplateLocationReachabilityMeta(),
-//            SystemEdgeReachabilityMeta(),
-//                TemplateEdgeReachabilityMeta(),
-//            InvariantViolationProperty()
+//          SystemEdgeReachabilityMeta(),
+//          TemplateEdgeReachabilityMeta(),
+//          InvariantViolationProperty()
 //			UnusedDeclarationsProperty()
 		)
         internal const val DEFAULT_OPTIONS_DFS = "order 1\nreduction 1\nrepresentation 0\ntrace 0\nextrapolation 0\nhashsize 27\nreuse 1\nsmcparametric 1\nmodest 0\nstatistical 0.01 0.01 0.05 0.05 0.05 0.9 1.1 0.0 0.0 4096.0 0.01"
         internal const val DEFAULT_OPTIONS_BFS = "order 0\nreduction 1\nrepresentation 0\ntrace 0\nextrapolation 0\nhashsize 27\nreuse 1\nsmcparametric 1\nmodest 0\nstatistical 0.01 0.01 0.05 0.05 0.05 0.9 1.1 0.0 0.0 4096.0 0.01"
         var stateSpaceSize = 0
-        var timeout = 5
+        var timeout = 300
         var simTime = 100
 
         internal var maxMem: Long = 0
 
         @Throws(IOException::class, EngineException::class)
-        internal fun engineQuery(sys: UppaalSystem, init: SymbolicState?, query: String, options: String,
-                                 cb: (QueryResult, SymbolicTrace) -> Unit) {
+        internal fun engineQuery(sys: UppaalSystem, init: SymbolicState?, query: String, options: String): Pair<QueryResult, SymbolicTrace> {
             var trace = SymbolicTrace()
 
             val qf = object : QueryFeedback {
@@ -190,12 +110,11 @@ abstract class AbstractProperty {
             else
                 UppaalUtil.engine.query(sys, init, options, Query(query, ""), qf)
 
-            cb(result, trace)
+            return Pair(result, trace)
         }
 
         @Throws(IOException::class, EngineException::class)
-        internal fun engineQueryConcrete(sys: UppaalSystem, init: SymbolicState?, query: String, options: String,
-                                 cb: (QueryResult, ConcreteTrace?) -> Unit) {
+        internal fun engineQueryConcrete(sys: UppaalSystem, query: String, options: String): Pair<QueryResult, ConcreteTrace?> {
             var trace : ConcreteTrace? = null
 
             val qf = object : QueryFeedback {
@@ -228,18 +147,14 @@ abstract class AbstractProperty {
 
                 override fun appendText(paramString: String) {}
             }
-            val result = if (init == null)
-                UppaalUtil.engine.query(sys, options, Query(query, ""), qf)
-            else
-                UppaalUtil.engine.query(sys, init, options, Query(query, ""), qf)
+            val result = UppaalUtil.engine.query(sys, options, Query(query, ""), qf)
 
-            cb(result, trace)
+            return Pair(result, trace)
         }
 
         @Throws(IOException::class, EngineException::class)
-        internal fun engineQuery(sys: UppaalSystem, query: String, options: String,
-                                 cb: (QueryResult, SymbolicTrace) -> Unit) {
-            engineQuery(sys, null, query, options, cb)
+        internal fun engineQuery(sys: UppaalSystem, query: String, options: String): Pair<QueryResult, SymbolicTrace> {
+            return engineQuery(sys, null, query, options)
         }
     }
 }

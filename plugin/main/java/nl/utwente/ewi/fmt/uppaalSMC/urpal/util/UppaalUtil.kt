@@ -25,6 +25,7 @@ import com.uppaal.gui.Main.enginePath
 import com.uppaal.model.core2.*
 import com.uppaal.model.core2.AbstractTemplate
 import com.uppaal.model.core2.Edge
+import com.uppaal.model.io2.XMLReader
 import com.uppaal.model.system.SystemEdgeSelect
 import com.uppaal.model.system.SystemLocation
 import com.uppaal.model.system.UppaalSystem
@@ -34,7 +35,9 @@ import com.uppaal.model.system.symbolic.SymbolicTransition
 import com.uppaal.plugin.Repository
 
 import nl.utwente.ewi.fmt.uppaalSMC.NSTA
+import nl.utwente.ewi.fmt.uppaalSMC.Serialization
 import nl.utwente.ewi.fmt.uppaalSMC.urpal.properties.AbstractProperty
+import org.apache.commons.io.input.CharSequenceInputStream
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.INode
 import org.eclipse.xtext.nodemodel.impl.CompositeNode
@@ -44,6 +47,7 @@ import org.muml.uppaal.declarations.*
 import org.muml.uppaal.templates.*
 import org.muml.uppaal.templates.Location
 import org.muml.uppaal.templates.Template
+import org.muml.uppaal.types.Type
 import java.io.File
 
 object UppaalUtil {
@@ -88,6 +92,19 @@ object UppaalUtil {
         val result = ArrayList<Edge>()
         while (n != null) {
             if (n is Edge) {
+                result.add(n)
+            }
+            n = n.next
+        }
+        return result
+    }
+
+    fun getBranches(doc: Document, templateName: String): List<BranchPoint> {
+        val t = doc.getTemplate(templateName)
+        var n: Node? = t.first
+        val result = ArrayList<BranchPoint>()
+        while (n != null) {
+            if (n is BranchPoint) {
                 result.add(n)
             }
             n = n.next
@@ -295,7 +312,14 @@ object UppaalUtil {
             }
         }
         return invariant
+    }
 
+    fun toDocument(nsta: NSTA, doc: Document): Document {
+        var xml = Serialization().main(nsta).toString().replace(Regex("<!DOCTYPE.*>"), "")
+
+        println(xml)
+
+        return XMLReader(CharSequenceInputStream(xml, "UTF-8")).parse(doc)!!
     }
 
     fun transformTrace(ts: SymbolicTrace, origSys: UppaalSystem): SymbolicTrace {
