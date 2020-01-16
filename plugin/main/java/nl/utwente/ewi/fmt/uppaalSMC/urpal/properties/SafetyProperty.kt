@@ -7,6 +7,7 @@ import com.uppaal.model.core2.Element
 import com.uppaal.model.core2.Nail
 import com.uppaal.model.system.UppaalSystem
 import nl.utwente.ewi.fmt.uppaalSMC.NSTA
+import nl.utwente.ewi.fmt.uppaalSMC.urpal.ui.MainUI
 import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.EditorUtil
 import nl.utwente.ewi.fmt.uppaalSMC.urpal.util.UppaalUtil
 import org.eclipse.emf.ecore.EObject
@@ -72,12 +73,8 @@ abstract class SafetyProperty: AbstractProperty() {
                 {
                     println("Loading trace")
 
-                    EditorUtil.runQueryGUI(query, tDoc, tSys)
-                    EditorUtil.showPane("Simulator")
-
-//                    MainUI.getDocument().set(tDoc)
-//                    MainUI.getSystemr().set(tSys)
-//                    MainUI.getTracer().set(t)
+                    MainUI.getSystemr().set(tSys)
+                    MainUI.getTracer().set(t)
                 }
             } else {
                 null
